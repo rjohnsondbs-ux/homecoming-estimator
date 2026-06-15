@@ -220,14 +220,32 @@
     const files = Array.from(e.target.files);
     files.forEach(f => {
       if (photos.length >= 6) return;
-      const reader = new FileReader();
-      reader.onload = ev => {
-        photos.push({ dataUrl: ev.target.result, type: f.type });
+      resizeImage(f, (dataUrl) => {
+        if (photos.length >= 6) return;
+        photos.push({ dataUrl: dataUrl, type: 'image/jpeg' });
         renderPhotoGrid();
-      };
-      reader.readAsDataURL(f);
+      });
     });
     e.target.value = '';
+  }
+
+  function resizeImage(file, callback) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 1024;
+        let w = img.width, h = img.height;
+        if (w > h && w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; }
+        else if (h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        callback(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
   }
 
   function removePhoto(i) { photos.splice(i, 1); renderPhotoGrid(); }
@@ -279,7 +297,16 @@
         body: JSON.stringify({ messages: [{ role: 'user', content: userContent }] })
       });
 
-      const data = await res.json();
+      const rawResponse = await res.text();
+      if (!rawResponse) {
+        throw new Error('The server timed out — try fewer photos or just use the description.');
+      }
+      let data;
+      try {
+        data = JSON.parse(rawResponse);
+      } catch (e) {
+        throw new Error('Server error. Try again with fewer photos.');
+      }
       if (data.error) throw new Error(data.error);
       if (!data.result) throw new Error('No result returned. Please try again.');
       const result = data.result;
