@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Homecoming Estimator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1C1C1E; color: #F5F0E8; min-height: 100vh; }
+
+  .header { background: #1C1C1E; padding: 16px 20px 12px; border-bottom: 1px solid #2C2C2E; position: sticky; top: 0; z-index: 100; }
+  .header-top { display: flex; align-items: center; justify-content: space-between; }
+  .brand { display: flex; flex-direction: column; }
+  .brand-name { font-size: 20px; font-weight: 700; letter-spacing: 0.04em; color: #F5F0E8; }
+  .brand-tag { font-size: 11px; color: #7A9E7E; letter-spacing: 0.08em; margin-top: 1px; }
+  .header-badge { background: #7A9E7E22; border: 1px solid #7A9E7E55; color: #7A9E7E; font-size: 11px; padding: 4px 10px; border-radius: 20px; }
+
+  .container { padding: 20px; max-width: 480px; margin: 0 auto; }
+
+  .section-label { font-size: 11px; font-weight: 600; color: #7A9E7E; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; margin-top: 24px; }
+  .section-label:first-child { margin-top: 0; }
+
+  .input-field { width: 100%; background: #2C2C2E; border: 1px solid #3A3A3C; border-radius: 10px; color: #F5F0E8; font-size: 15px; padding: 12px 14px; outline: none; -webkit-appearance: none; }
+  .input-field::placeholder { color: #666; }
+  .input-field:focus { border-color: #7A9E7E; }
+  textarea.input-field { resize: vertical; min-height: 90px; line-height: 1.5; }
+
+  .photo-zone { background: #2C2C2E; border: 1.5px dashed #3A3A3C; border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: border-color 0.2s; }
+  .photo-zone:hover { border-color: #7A9E7E; }
+  .photo-zone-icon { font-size: 28px; margin-bottom: 8px; }
+  .photo-zone-text { font-size: 13px; color: #888; }
+  .photo-zone-sub { font-size: 11px; color: #555; margin-top: 4px; }
+  #photo-input { display: none; }
+
+  .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+  .photo-thumb { position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: #3A3A3C; }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-remove { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.7); border: none; border-radius: 50%; width: 20px; height: 20px; color: #fff; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+  .generate-btn { width: 100%; background: #7A9E7E; color: #fff; border: none; border-radius: 12px; padding: 16px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 28px; transition: background 0.2s, transform 0.1s; letter-spacing: 0.02em; }
+  .generate-btn:hover { background: #6B8F71; }
+  .generate-btn:active { transform: scale(0.98); }
+  .generate-btn:disabled { background: #3A3A3C; color: #666; cursor: default; transform: none; }
+
+  .loading-state { text-align: center; padding: 60px 20px; }
+  .loading-spinner { width: 40px; height: 40px; border: 3px solid #2C2C2E; border-top-color: #7A9E7E; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { color: #888; font-size: 14px; }
+
+  .results-section { margin-top: 24px; }
+
+  .tier-card { border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 2px solid transparent; }
+  .tier-clear { background: #2C2C2E; border-color: #3A3A3C; }
+  .tier-transform { background: #1A2A1C; border-color: #3A6B3D; }
+  .tier-sanctuary { background: #1A1A2A; border-color: #4A4A7A; }
+  .tier-recommended { border-color: #7A9E7E !important; position: relative; }
+  .tier-rec-badge { position: absolute; top: -10px; left: 16px; background: #7A9E7E; color: #fff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.05em; }
+  .tier-name { font-size: 18px; font-weight: 700; color: #F5F0E8; }
+  .tier-price { font-size: 22px; font-weight: 700; color: #7A9E7E; margin: 4px 0; }
+  .tier-desc { font-size: 13px; color: #888; line-height: 1.5; }
+
+  .tabs { display: flex; background: #2C2C2E; border-radius: 10px; padding: 4px; gap: 4px; margin-bottom: 20px; }
+  .tab-btn { flex: 1; background: transparent; border: none; color: #888; font-size: 12px; font-weight: 500; padding: 8px 4px; border-radius: 8px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+  .tab-btn.active { background: #7A9E7E; color: #fff; }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .quote-block { background: #2C2C2E; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+  .quote-block-title { font-size: 12px; font-weight: 600; color: #7A9E7E; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
+  .quote-item { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; color: #CCC; line-height: 1.5; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid #3A3A3C; }
+  .quote-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .quote-item-dot { color: #7A9E7E; margin-top: 2px; flex-shrink: 0; }
+  .quote-item-x { color: #E24B4A; margin-top: 2px; flex-shrink: 0; }
+  .quote-item-up { color: #EF9F27; margin-top: 2px; flex-shrink: 0; }
+
+  .confidence-bar-wrap { background: #3A3A3C; border-radius: 20px; height: 8px; margin: 8px 0; overflow: hidden; }
+  .confidence-bar { height: 100%; background: #7A9E7E; border-radius: 20px; transition: width 1s ease; }
+
+  .sms-box { background: #1A2A1C; border: 1px solid #3A6B3D; border-radius: 12px; padding: 14px; font-size: 14px; color: #C8D8C8; line-height: 1.6; white-space: pre-wrap; }
+
+  .copy-btn { width: 100%; background: #2C2C2E; border: 1px solid #3A3A3C; border-radius: 10px; color: #7A9E7E; font-size: 14px; font-weight: 600; padding: 12px; cursor: pointer; margin-top: 10px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .copy-btn:hover { background: #7A9E7E22; border-color: #7A9E7E; }
+  .copy-btn.copied { background: #7A9E7E; color: #fff; border-color: #7A9E7E; }
+
+  .script-block { background: #2C2C2E; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+  .script-label { font-size: 11px; font-weight: 600; color: #7A9E7E; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+  .script-text { font-size: 14px; color: #CCC; line-height: 1.65; font-style: italic; }
+
+  .assessment-reminder { background: #2A1A00; border: 1.5px solid #EF9F27; border-radius: 12px; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start; margin-bottom: 20px; }
+  .assessment-reminder-icon { font-size: 20px; flex-shrink: 0; }
+  .assessment-reminder-text { font-size: 13px; color: #F5D08A; line-height: 1.5; }
+  .assessment-reminder-bold { font-weight: 700; font-size: 14px; color: #EF9F27; }
+
+  .tier-detail-card { background: #2C2C2E; border-radius: 10px; padding: 14px; margin-bottom: 10px; border-left: 3px solid transparent; }
+  .tier-detail-clear { border-left-color: #888; }
+  .tier-detail-transform { border-left-color: #7A9E7E; }
+  .tier-detail-sanctuary { border-left-color: #9090D0; }
+  .tier-detail-name { font-size: 15px; font-weight: 700; color: #F5F0E8; }
+  .tier-detail-price { font-size: 13px; color: #7A9E7E; margin: 2px 0 8px; }
+  .tier-detail-items { font-size: 13px; color: #AAA; line-height: 1.7; }
+
+  .new-quote-btn { width: 100%; background: transparent; border: 1.5px solid #3A3A3C; border-radius: 12px; color: #888; font-size: 14px; padding: 12px; cursor: pointer; margin-top: 24px; transition: all 0.2s; }
+  .new-quote-btn:hover { border-color: #7A9E7E; color: #7A9E7E; }
+
+  .error-msg { background: #2A0000; border: 1px solid #E24B4A; border-radius: 10px; padding: 14px; color: #F09595; font-size: 14px; line-height: 1.5; margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="brand">
+      <div class="brand-name">HOMECOMING</div>
+      <div class="brand-tag">Every arrival should feel like one.</div>
+    </div>
+    <div class="header-badge">Estimator</div>
+  </div>
+</div>
+
+<div class="container">
+
+  <div id="form-view">
+    <div class="section-label">Customer Info</div>
+    <input class="input-field" id="customer-name" type="text" placeholder="Customer name" style="margin-bottom:10px;">
+    <input class="input-field" id="customer-address" type="text" placeholder="Address or neighborhood">
+
+    <div class="section-label">Garage Photos</div>
+    <div class="photo-zone" onclick="document.getElementById('photo-input').click()">
+      <div class="photo-zone-icon">📷</div>
+      <div class="photo-zone-text">Tap to add garage photos</div>
+      <div class="photo-zone-sub">Multiple photos — before shots, clutter, size</div>
+    </div>
+    <input type="file" id="photo-input" accept="image/*" multiple onchange="handlePhotos(event)">
+    <div class="photo-grid" id="photo-grid"></div>
+
+    <div class="section-label">Describe the Garage</div>
+    <textarea class="input-field" id="garage-desc" placeholder="e.g. Two-car garage, packed floor to ceiling, old tools, boxes everywhere, oil stains on concrete. Customer wants to actually park their car in it."></textarea>
+
+    <button class="generate-btn" id="gen-btn" onclick="generateQuote()">Generate Quote →</button>
+    <div id="error-area"></div>
+  </div>
+
+  <div id="loading-view" style="display:none;">
+    <div class="loading-state">
+      <div class="loading-spinner"></div>
+      <div class="loading-text" id="loading-msg">Analyzing garage...</div>
+    </div>
+  </div>
+
+  <div id="results-view" style="display:none;">
+
+    <div class="assessment-reminder">
+      <div class="assessment-reminder-icon">⚠️</div>
+      <div class="assessment-reminder-text">
+        <div class="assessment-reminder-bold">Mention the $75 assessment fee</div>
+        "We charge $75 for the assessment — that applies to your project if you book today."
+      </div>
+    </div>
+
+    <div id="tier-cards"></div>
+
+    <div class="tabs" style="margin-top:20px;">
+      <button class="tab-btn active" onclick="switchTab('quote')">Quote</button>
+      <button class="tab-btn" onclick="switchTab('sms')">Follow-up</button>
+      <button class="tab-btn" onclick="switchTab('script')">Script</button>
+      <button class="tab-btn" onclick="switchTab('tiers')">Tiers</button>
+    </div>
+
+    <div id="tab-quote" class="tab-content active">
+      <div id="quote-content"></div>
+      <button class="copy-btn" id="copy-quote-btn" onclick="copyQuote()">📋 Copy Full Quote</button>
+    </div>
+
+    <div id="tab-sms" class="tab-content">
+      <div class="sms-box" id="sms-content"></div>
+      <button class="copy-btn" id="copy-sms-btn" onclick="copySMS()">📱 Copy Text Message</button>
+    </div>
+
+    <div id="tab-script" class="tab-content">
+      <div id="script-content"></div>
+    </div>
+
+    <div id="tab-tiers" class="tab-content">
+      <div class="tier-detail-card tier-detail-clear">
+        <div class="tier-detail-name">The Clear</div>
+        <div class="tier-detail-price">$400 – $800</div>
+        <div class="tier-detail-items">✓ Full cleanout &amp; haul-away<br>✓ Floor sweep &amp; wipe-down<br>✓ Donation sort<br>✗ No shelving or organization<br>✗ No floor coating</div>
+      </div>
+      <div class="tier-detail-card tier-detail-transform">
+        <div class="tier-detail-name">The Transform</div>
+        <div class="tier-detail-price">$1,200 – $2,000</div>
+        <div class="tier-detail-items">✓ Everything in The Clear<br>✓ Wall-mounted shelving systems<br>✓ Storage zones &amp; full organization<br>✓ Tool wall, hooks, overhead bins<br>✗ No epoxy floor coating<br>✗ No custom cabinetry</div>
+      </div>
+      <div class="tier-detail-card tier-detail-sanctuary">
+        <div class="tier-detail-name">The Sanctuary</div>
+        <div class="tier-detail-price">$3,500 – $6,000</div>
+        <div class="tier-detail-items">✓ Everything in The Transform<br>✓ Epoxy floor coating<br>✓ Custom cabinet system<br>✓ Premium lighting upgrade<br>✓ Annual maintenance plan included</div>
+      </div>
+      <div style="background:#1A2A1C;border:1px solid #3A6B3D;border-radius:10px;padding:14px;margin-top:4px;">
+        <div class="tier-detail-name" style="color:#7A9E7E;">Annual Maintenance Plan</div>
+        <div class="tier-detail-price">$500/year</div>
+        <div class="tier-detail-items" style="color:#8AAA8A;">Two seasonal tune-up visits. Offer before leaving every Transform &amp; Sanctuary job.</div>
+      </div>
+    </div>
+
+    <button class="new-quote-btn" onclick="resetForm()">+ New Quote</button>
+  </div>
+
+</div>
+
+<script>
+  let photos = [];
+  let currentResult = null;
+  let currentSMS = '';
+
+  const loadingMessages = ['Analyzing garage...','Scoping the work...','Building your quote...','Almost ready...'];
+
+  function handlePhotos(e) {
+    const files = Array.from(e.target.files);
+    files.forEach(f => {
+      if (photos.length >= 6) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        photos.push({ dataUrl: ev.target.result, type: f.type });
+        renderPhotoGrid();
+      };
+      reader.readAsDataURL(f);
+    });
+    e.target.value = '';
+  }
+
+  function removePhoto(i) { photos.splice(i, 1); renderPhotoGrid(); }
+
+  function renderPhotoGrid() {
+    document.getElementById('photo-grid').innerHTML = photos.map((p, i) => `
+      <div class="photo-thumb">
+        <img src="${p.dataUrl}" alt="Garage photo">
+        <button class="photo-remove" onclick="removePhoto(${i})">✕</button>
+      </div>`).join('');
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach((b, i) => {
+      b.classList.toggle('active', ['quote','sms','script','tiers'][i] === tab);
+    });
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+  }
+
+  async function generateQuote() {
+    const name = document.getElementById('customer-name').value.trim();
+    const address = document.getElementById('customer-address').value.trim();
+    const desc = document.getElementById('garage-desc').value.trim();
+    if (!desc && photos.length === 0) { showError('Please describe the garage or add at least one photo.'); return; }
+    clearError();
+    document.getElementById('form-view').style.display = 'none';
+    document.getElementById('loading-view').style.display = 'block';
+    let msgIdx = 0;
+    const msgEl = document.getElementById('loading-msg');
+    const msgTimer = setInterval(() => { msgIdx = (msgIdx+1)%loadingMessages.length; msgEl.textContent = loadingMessages[msgIdx]; }, 1800);
+
+    try {
+      const userContent = [];
+      photos.forEach(p => {
+        userContent.push({ type: 'image', source: { type: 'base64', media_type: p.type || 'image/jpeg', data: p.dataUrl.split(',')[1] } });
+      });
+      const parts = [];
+      if (name) parts.push(`Customer: ${name}`);
+      if (address) parts.push(`Address: ${address}`);
+      if (desc) parts.push(`Description: ${desc}`);
+      if (photos.length) parts.push(`${photos.length} garage photo(s) attached.`);
+      parts.push('Generate a professional quote and all supporting materials.');
+      userContent.push({ type: 'text', text: parts.join('\n') });
+
+      const res = await fetch('/api/quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [{ role: 'user', content: userContent }] })
+      });
+
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      const result = JSON.parse(data.content[0].text.replace(/```json|```/g,'').trim());
+      currentResult = result;
+      currentResult._name = name || result.customerName || 'Customer';
+      currentResult._address = address || result.address || '';
+      currentSMS = result.followUpSMS || '';
+      clearInterval(msgTimer);
+      renderResults(result);
+    } catch(err) {
+      clearInterval(msgTimer);
+      document.getElementById('loading-view').style.display = 'none';
+      document.getElementById('form-view').style.display = 'block';
+      showError('Something went wrong: ' + (err.message || 'Please try again.'));
+    }
+  }
+
+  function renderResults(r) {
+    document.getElementById('loading-view').style.display = 'none';
+    document.getElementById('results-view').style.display = 'block';
+    const tierClass = r.recommendedTier === 'The Clear' ? 'tier-clear' : r.recommendedTier === 'The Transform' ? 'tier-transform' : 'tier-sanctuary';
+    document.getElementById('tier-cards').innerHTML = `
+      <div class="tier-card ${tierClass} tier-recommended" style="position:relative;margin-top:14px;">
+        <div class="tier-rec-badge">✓ RECOMMENDED</div>
+        <div class="tier-name">${r.recommendedTier}</div>
+        <div class="tier-price">${r.priceRange}</div>
+        <div class="tier-desc">${r.quickNote||''}</div>
+        <div style="margin-top:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="font-size:11px;color:#888;">Confidence</span>
+            <span style="font-size:12px;font-weight:600;color:#7A9E7E;">${r.confidenceLevel||70}%</span>
+          </div>
+          <div class="confidence-bar-wrap"><div class="confidence-bar" id="conf-bar" style="width:0%"></div></div>
+          <div style="font-size:11px;color:#666;margin-top:4px;">${r.confidenceNote||''}</div>
+        </div>
+      </div>
+      ${r.recommendMaintenancePlan ? '<div style="background:#1A2A1C;border:1px solid #3A6B3D;border-radius:10px;padding:12px 14px;margin-top:4px;display:flex;align-items:center;gap:10px;"><span style="font-size:18px;">📋</span><div><div style="font-size:13px;font-weight:600;color:#7A9E7E;">Pitch the Annual Plan — $500/year</div><div style="font-size:12px;color:#8AAA8A;margin-top:2px;">Offer before leaving. Pre-book while they\'re in the transformed space.</div></div></div>' : ''}
+    `;
+    setTimeout(() => { const b = document.getElementById('conf-bar'); if(b) b.style.width=(r.confidenceLevel||70)+'%'; }, 100);
+
+    const items = arr => arr.map(i => `<div class="quote-item"><span class="quote-item-dot">✓</span><span>${i}</span></div>`).join('');
+    const xitems = arr => arr.map(i => `<div class="quote-item"><span class="quote-item-x">✗</span><span>${i}</span></div>`).join('');
+    const upitems = arr => arr.map(i => `<div class="quote-item"><span class="quote-item-up">↑</span><span>${i}</span></div>`).join('');
+
+    document.getElementById('quote-content').innerHTML = `
+      <div class="quote-block"><div class="quote-block-title">Scope of Work</div>${items(r.scopeOfWork||[])}</div>
+      ${(r.notIncluded||[]).length ? `<div class="quote-block"><div class="quote-block-title">Not Included</div>${xitems(r.notIncluded)}</div>` : ''}
+      ${(r.upgradeOptions||[]).length ? `<div class="quote-block"><div class="quote-block-title">Upgrade Options</div>${upitems(r.upgradeOptions)}</div>` : ''}
+    `;
+    document.getElementById('sms-content').textContent = r.followUpSMS || '';
+    const s = r.salesScript || {};
+    document.getElementById('script-content').innerHTML = `
+      <div class="script-block"><div class="script-label">Opener</div><div class="script-text">"${s.opener||''}"</div></div>
+      <div class="script-block"><div class="script-label">Pitch ${r.recommendedTier}</div><div class="script-text">"${s.tierPitch||''}"</div></div>
+      <div class="script-block"><div class="script-label">When They Hesitate on Price</div><div class="script-text">"${s.handlePrice||''}"</div></div>
+      <div class="script-block"><div class="script-label">Close the Deal</div><div class="script-text">"${s.closingLine||''}"</div></div>
+      <div class="script-block"><div class="script-label">Pitch the Annual Plan</div><div class="script-text">"${s.maintenancePitch||''}"</div></div>
+    `;
+  }
+
+  function buildFullQuote() {
+    if (!currentResult) return '';
+    const r = currentResult;
+    return [
+      'HOMECOMING — Garage Transformation Quote',
+      'Every arrival should feel like one.',
+      '',
+      `Customer: ${r._name}`,
+      r._address ? `Address: ${r._address}` : '',
+      `Date: ${new Date().toLocaleDateString()}`,
+      '',
+      '─────────────────────────────',
+      `RECOMMENDED: ${r.recommendedTier}`,
+      `Price Range: ${r.priceRange}`,
+      `Confidence: ${r.confidenceLevel}%`,
+      '',
+      'SCOPE OF WORK',
+      ...(r.scopeOfWork||[]).map(i => `  ✓ ${i}`),
+      '',
+      ...(r.notIncluded||[]).length ? ['NOT INCLUDED',...(r.notIncluded).map(i=>`  ✗ ${i}`),''] : [],
+      ...(r.upgradeOptions||[]).length ? ['UPGRADE OPTIONS',...(r.upgradeOptions).map(i=>`  ↑ ${i}`),''] : [],
+      r.recommendMaintenancePlan ? 'Annual Maintenance Plan: $500/year (2 seasonal visits)\n' : '',
+      'Assessment fee: $75 — applied to job if you book today.',
+      '',
+      '─────────────────────────────',
+      'Homecoming OKC'
+    ].filter(l => l !== null).join('\n');
+  }
+
+  function copyQuote() {
+    navigator.clipboard.writeText(buildFullQuote()).then(() => {
+      const btn = document.getElementById('copy-quote-btn');
+      btn.textContent = '✓ Copied!'; btn.classList.add('copied');
+      setTimeout(() => { btn.innerHTML = '📋 Copy Full Quote'; btn.classList.remove('copied'); }, 2200);
+    });
+  }
+
+  function copySMS() {
+    navigator.clipboard.writeText(currentSMS).then(() => {
+      const btn = document.getElementById('copy-sms-btn');
+      btn.textContent = '✓ Copied!'; btn.classList.add('copied');
+      setTimeout(() => { btn.innerHTML = '📱 Copy Text Message'; btn.classList.remove('copied'); }, 2200);
+    });
+  }
+
+  function resetForm() {
+    currentResult = null; currentSMS = ''; photos = [];
+    document.getElementById('photo-grid').innerHTML = '';
+    document.getElementById('customer-name').value = '';
+    document.getElementById('customer-address').value = '';
+    document.getElementById('garage-desc').value = '';
+    document.getElementById('results-view').style.display = 'none';
+    document.getElementById('form-view').style.display = 'block';
+    switchTab('quote'); clearError();
+  }
+
+  function showError(msg) { document.getElementById('error-area').innerHTML = `<div class="error-msg">${msg}</div>`; }
+  function clearError() { document.getElementById('error-area').innerHTML = ''; }
+</script>
+</body>
+</html>
